@@ -113,7 +113,8 @@ async function run() {
 
     // admin api 
     app.get("/allClass", async (req, res) => {      
-      const result = await classesCollection.find().toArray();
+      const result = await classesCollection.find().sort( { students: -1 } ).toArray()
+      ;
       res.send(result);
     });
 
