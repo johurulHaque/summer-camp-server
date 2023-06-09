@@ -53,6 +53,7 @@ async function run() {
 
     const usersCollection = client.db("sportsDB").collection("users");
     const classesCollection = client.db("sportsDB").collection("classes");
+    const cartCollection = client.db("sportsDB").collection("carts");
 
     app.post("/jwt", (req, res) => {
       const user = req.body;
@@ -203,6 +204,16 @@ async function run() {
         },
       };
       const result = await classesCollection.updateOne(filter, updateDoc,options);
+      res.send(result);
+    });
+
+    // cart api 
+    // cart collection apis
+  
+
+    app.post("/carts", async (req, res) => {
+      const item = req.body;
+      const result = await cartCollection.insertOne(item);
       res.send(result);
     });
 
