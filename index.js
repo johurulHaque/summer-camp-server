@@ -64,7 +64,22 @@ async function run() {
       res.send({ token });
     });
 
-   
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;      
+      const paymentResult = await paymentCollection.insertOne(payment);
+      const filter = { _id:new ObjectId(payment.classId) };
+      const update = { $inc: {students: 1 } };
+      const result = await classesCollection.updateOne(filter, update);
+      console.log(result)
+
+
+
+      const query = { _id:  new ObjectId(payment.cartId) };      
+      const deleteResult = await cartCollection.deleteOne(query);
+      // const paymentCollection
+      res.send({ paymentResult, deleteResult });
+    });
+    
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
@@ -101,6 +116,28 @@ async function run() {
       res.send(result);
     });
 
+    // user 
+    app.get("/enrollClass", async (req, res) => {
+      const email = req.query.email;
+      // const email = "jony@gmail.com";
+
+      if (!email) {
+        res.send([]);
+      }
+
+      // const decodedEmail = req.decoded.email;
+      // if (email !== decodedEmail) {
+      //   return res
+      //     .status(403)
+      //     .send({ error: true, message: "porviden access" });
+      // }
+
+      const query = { email: email };
+      const result = await paymentCollection.find(query).toArray();
+      res.send(result);
+    });
+
+
     // instructor api 
     app.get("/class", async (req, res) => {
       // const email = req.query.email;
@@ -128,12 +165,16 @@ async function run() {
       res.send(result);
     });
 
+    
+
     // admin api 
     app.get("/allClass", async (req, res) => {      
       const result = await classesCollection.find().sort( { students: -1 } ).toArray()
       ;
       res.send(result);
     });
+
+
 
     // app.patch("/user/:id", async (req, res) => {  
     //   const id = req.params.id;
