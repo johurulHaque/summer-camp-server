@@ -65,21 +65,18 @@ async function run() {
     });
 
     app.post("/payments", async (req, res) => {
-      const payment = req.body;      
+      const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
-      const filter = { _id:new ObjectId(payment.classId) };
-      const update = { $inc: {students: 1 } };
+      const filter = { _id: new ObjectId(payment.classId) };
+      const update = { $inc: { students: 1 } };
       const result = await classesCollection.updateOne(filter, update);
-      console.log(result)
-
-
-
-      const query = { _id:  new ObjectId(payment.cartId) };      
+      // console.log(result)
+      const query = { _id: new ObjectId(payment.cartId) };
       const deleteResult = await cartCollection.deleteOne(query);
       // const paymentCollection
       res.send({ paymentResult, deleteResult });
     });
-    
+
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
@@ -88,23 +85,34 @@ async function run() {
         currency: "inr",
         payment_method_types: ["card"],
       });
-  
+
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
     });
 
+    app.get("/users", async (req, res) => {      
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
 
-
-    app.get("/users",  async (req, res) => {
-      console.log('object')
-        const result = await usersCollection.find().toArray();
-        res.send(result);
-      });
+    app.get("/users/role/:email", async (req, res) => {
+      const email = req.params.email;
+      // console.log(email)
+      // if (req.decoded.email !== email) {
+      //   res.send({ admin: false });
+      // }
+  
+      const query = { email: email };
+      const result = await usersCollection.findOne(query);
+      console.log(result)
+      // const result = { role: user.role };
+      res.send(result);
+    });
 
     app.post("/users", async (req, res) => {
       const user = req.body;
-      console.log(user)
+      console.log(user);
       const query = { email: user.email };
       const existingUser = await usersCollection.findOne(query);
 
@@ -116,7 +124,7 @@ async function run() {
       res.send(result);
     });
 
-    // user 
+    // user
     app.get("/enrollClass", async (req, res) => {
       const email = req.query.email;
       // const email = "jony@gmail.com";
@@ -137,8 +145,7 @@ async function run() {
       res.send(result);
     });
 
-
-    // instructor api 
+    // instructor api
     app.get("/class", async (req, res) => {
       // const email = req.query.email;
       const email = "jony@gmail.com";
@@ -165,18 +172,16 @@ async function run() {
       res.send(result);
     });
 
-    
-
-    // admin api 
-    app.get("/allClass", async (req, res) => {      
-      const result = await classesCollection.find().sort( { students: -1 } ).toArray()
-      ;
+    // admin api
+    app.get("/allClass", async (req, res) => {
+      const result = await classesCollection
+        .find()
+        .sort({ students: -1 })
+        .toArray();
       res.send(result);
     });
 
-
-
-    // app.patch("/user/:id", async (req, res) => {  
+    // app.patch("/user/:id", async (req, res) => {
     //   const id = req.params.id;
     //   const filter = { _id: new ObjectId(id) };
     //   const options = { upsert: true };
@@ -193,8 +198,8 @@ async function run() {
     // });
     // app.patch("/user", async (req, res) => {
     //   const query1 = req.query.id;
-    //   const query2 = req.query.role;     
-    //   console.log(query1,query2) 
+    //   const query2 = req.query.role;
+    //   console.log(query1,query2)
     //   const filter = { _id: new ObjectId(query1) };
     //   const options = { upsert: true };
     //   const updateDoc = {
@@ -214,10 +219,11 @@ async function run() {
           role: "admin",
         },
       };
-  
+
       const result = await usersCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
+
     app.patch("/users/instructor/:id", async (req, res) => {
       const id = req.params.id;
       console.log(id);
@@ -227,17 +233,14 @@ async function run() {
           role: "instructor",
         },
       };
-  
+
       const result = await usersCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
 
-
-
-
     app.patch("/class", async (req, res) => {
       const query1 = req.query.id;
-      const query2 = req.query.status;      
+      const query2 = req.query.status;
       const filter = { _id: new ObjectId(query1) };
       const options = { upsert: true };
       const updateDoc = {
@@ -245,14 +248,18 @@ async function run() {
           status: query2,
         },
       };
-      const result = await classesCollection.updateOne(filter, updateDoc,options);
+      const result = await classesCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
       res.send(result);
     });
 
-    app.post("/class/feedback/:id", async (req, res) => {            
-      const feedback = req.body; 
-      const id = req.params.id; 
-      console.log(feedback.feedback,id)
+    app.post("/class/feedback/:id", async (req, res) => {
+      const feedback = req.body;
+      const id = req.params.id;
+      console.log(feedback.feedback, id);
       const filter = { _id: new ObjectId(id) };
       const options = { upsert: true };
       const updateDoc = {
@@ -260,29 +267,29 @@ async function run() {
           feedback: feedback.feedback,
         },
       };
-      const result = await classesCollection.updateOne(filter, updateDoc,options);
+      const result = await classesCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
       res.send(result);
     });
 
-    // cart api 
     // cart collection apis
-  app.get("/carts",  async (req, res) => {
-    const email = req.query.email;
+    app.get("/carts", async (req, res) => {
+      const email = req.query.email;
+      if (!email) {
+        res.send([]);
+      }
+      // const decodedEmail = req.decoded.email;
+      // if (email !== decodedEmail) {
+      //   return res.status(403).send({ error: true, message: "porviden access" });
+      // }
+      const query = { email: email };
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    });
 
-    if (!email) {
-      res.send([]);
-    }
-
-    // const decodedEmail = req.decoded.email;
-    // if (email !== decodedEmail) {
-    //   return res.status(403).send({ error: true, message: "porviden access" });
-    // }
-
-    const query = { email: email };
-    const result = await cartCollection.find(query).toArray();
-    res.send(result);
-  });
-  
     app.post("/carts", async (req, res) => {
       const item = req.body;
       const result = await cartCollection.insertOne(item);
@@ -295,7 +302,6 @@ async function run() {
       const result = await cartCollection.deleteOne(query);
       res.send(result);
     });
-
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
