@@ -64,6 +64,19 @@ async function run() {
       res.send({ token });
     });
 
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden message" });
+      }
+      next();
+    };
+
+
     app.post("/payments", async (req, res) => {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
@@ -96,17 +109,14 @@ async function run() {
       res.send(result);
     });
 
+    // user role findOut by email ---- useRole hook
     app.get("/users/role/:email", async (req, res) => {
-      const email = req.params.email;
-      // console.log(email)
+      const email = req.params.email;      
       // if (req.decoded.email !== email) {
       //   res.send({ admin: false });
-      // }
-  
+      // }  
       const query = { email: email };
-      const result = await usersCollection.findOne(query);
-      console.log(result)
-      // const result = { role: user.role };
+      const result = await usersCollection.findOne(query);      
       res.send(result);
     });
 
@@ -172,7 +182,10 @@ async function run() {
       res.send(result);
     });
 
-    // admin api
+
+
+    // admin api  useAllClass --- hook
+    // admin api  useAllClassAdmin --- hook
     app.get("/allClass", async (req, res) => {
       const result = await classesCollection
         .find()
@@ -180,6 +193,15 @@ async function run() {
         .toArray();
       res.send(result);
     });
+
+    app.get("/admin/allClass", async (req, res) => {
+      const result = await classesCollection
+        .find()
+        .toArray();
+      res.send(result);
+    });
+
+    
 
     // app.patch("/user/:id", async (req, res) => {
     //   const id = req.params.id;
@@ -238,42 +260,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/class", async (req, res) => {
-      const query1 = req.query.id;
-      const query2 = req.query.status;
-      const filter = { _id: new ObjectId(query1) };
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: {
-          status: query2,
-        },
-      };
-      const result = await classesCollection.updateOne(
-        filter,
-        updateDoc,
-        options
-      );
-      res.send(result);
-    });
-
-    app.post("/class/feedback/:id", async (req, res) => {
-      const feedback = req.body;
-      const id = req.params.id;
-      console.log(feedback.feedback, id);
-      const filter = { _id: new ObjectId(id) };
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: {
-          feedback: feedback.feedback,
-        },
-      };
-      const result = await classesCollection.updateOne(
-        filter,
-        updateDoc,
-        options
-      );
-      res.send(result);
-    });
+   
 
     // cart collection apis
     app.get("/carts", async (req, res) => {
