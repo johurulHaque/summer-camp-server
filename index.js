@@ -3,7 +3,7 @@ const app = express();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-// const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 
 const port = process.env.PORT || 5000;
 
@@ -54,6 +54,7 @@ async function run() {
     const usersCollection = client.db("sportsDB").collection("users");
     const classesCollection = client.db("sportsDB").collection("classes");
     const cartCollection = client.db("sportsDB").collection("carts");
+    const paymentCollection = client.db("sportsDB").collection("payments");
 
     app.post("/jwt", (req, res) => {
       const user = req.body;
@@ -61,6 +62,21 @@ async function run() {
         expiresIn: "1h",
       });
       res.send({ token });
+    });
+
+   
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "inr",
+        payment_method_types: ["card"],
+      });
+  
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
     });
 
 
@@ -229,6 +245,13 @@ async function run() {
     app.post("/carts", async (req, res) => {
       const item = req.body;
       const result = await cartCollection.insertOne(item);
+      res.send(result);
+    });
+
+    app.delete("/carts/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await cartCollection.deleteOne(query);
       res.send(result);
     });
 
