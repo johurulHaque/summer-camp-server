@@ -197,7 +197,7 @@ async function run() {
       }
 
       const query = { email: email };
-      const result = await paymentCollection.find(query).toArray();
+      const result = await paymentCollection.find(query).sort({ date: -1 }).toArray();
       res.send(result);
     });
 
@@ -309,7 +309,7 @@ async function run() {
 
     app.patch("/users/instructor/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
+      // console.log(id);
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
