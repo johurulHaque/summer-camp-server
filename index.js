@@ -87,13 +87,24 @@ async function run() {
       }
       next();
     };
+    const verifyUser = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "user") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden message" });
+      }
+      next();
+    };
 
 
     app.post("/payments", async (req, res) => {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
       const filter = { _id: new ObjectId(payment.classId) };
-      const update = { $inc: { students: 1 } };
+      const update = { $inc: { enrolledStudent: 1 } };
       const result = await classesCollection.updateOne(filter, update);
       // console.log(result)
       const query = { _id: new ObjectId(payment.cartId) };
@@ -143,26 +154,54 @@ async function run() {
       res.send(result);
     });
 
-    // user
-    app.get("/enrollClass", async (req, res) => {
+    // user ----------- api
+    //user api -------------- cart collection apis
+    app.get("/carts", async (req, res) => {
       const email = req.query.email;
-      // const email = "jony@gmail.com";
+      if (!email) {
+        res.send([]);
+      }
+      // const decodedEmail = req.decoded.email;
+      // if (email !== decodedEmail) {
+      //   return res.status(403).send({ error: true, message: "forbidden access" });
+      // }
+      const query = { email: email };
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    });
 
+    app.post("/carts", async (req, res) => {
+      const item = req.body;
+      const result = await cartCollection.insertOne(item);
+      res.send(result);
+    });
+
+    app.delete("/carts/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await cartCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.get("/enrollClass",verifyJWT,verifyUser, async (req, res) => {
+      const email = req.query.email;    
       if (!email) {
         res.send([]);
       }
 
-      // const decodedEmail = req.decoded.email;
-      // if (email !== decodedEmail) {
-      //   return res
-      //     .status(403)
-      //     .send({ error: true, message: "porviden access" });
-      // }
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
 
       const query = { email: email };
       const result = await paymentCollection.find(query).toArray();
       res.send(result);
     });
+
+
 
     // instructor api
     app.get("/class",verifyJWT,verifyInstructor, async (req, res) => {
@@ -194,10 +233,12 @@ async function run() {
     app.get("/allClass", async (req, res) => {
       const result = await classesCollection
         .find()
-        .sort({ students: -1 })
+        .sort({ enrolledStudent: -1 })
         .toArray();
       res.send(result);
     });
+
+
     // admin api  useAllClassAdmin --- hook
     app.get("/users", async (req, res) => {      
       const result = await usersCollection.find().toArray();
@@ -252,35 +293,6 @@ async function run() {
       res.send(result);
     });
 
-    // app.patch("/user/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const filter = { _id: new ObjectId(id) };
-    //   const options = { upsert: true };
-    //   const updateDoc = {
-    //     $set: {
-    //       role: 'query2',
-    //     },
-    //   };
-    //   const result = await classesCollection.updateOne(filter, updateDoc,options);
-    //   res.send(result);
-
-    //   const result = await classesCollection.find().toArray();
-    //   res.send(result);
-    // });
-    // app.patch("/user", async (req, res) => {
-    //   const query1 = req.query.id;
-    //   const query2 = req.query.role;
-    //   console.log(query1,query2)
-    //   const filter = { _id: new ObjectId(query1) };
-    //   const options = { upsert: true };
-    //   const updateDoc = {
-    //     $set: {
-    //       role: query2,
-    //     },
-    //   };
-    //   const result = await classesCollection.updateOne(filter, updateDoc,options);
-    //   res.send(result);
-    // });
     app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
       console.log(id);
@@ -311,33 +323,7 @@ async function run() {
 
    
 
-    // cart collection apis
-    app.get("/carts", async (req, res) => {
-      const email = req.query.email;
-      if (!email) {
-        res.send([]);
-      }
-      // const decodedEmail = req.decoded.email;
-      // if (email !== decodedEmail) {
-      //   return res.status(403).send({ error: true, message: "porviden access" });
-      // }
-      const query = { email: email };
-      const result = await cartCollection.find(query).toArray();
-      res.send(result);
-    });
-
-    app.post("/carts", async (req, res) => {
-      const item = req.body;
-      const result = await cartCollection.insertOne(item);
-      res.send(result);
-    });
-
-    app.delete("/carts/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await cartCollection.deleteOne(query);
-      res.send(result);
-    });
+    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
