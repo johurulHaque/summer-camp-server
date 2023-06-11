@@ -76,6 +76,18 @@ async function run() {
       next();
     };
 
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "instructor") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden message" });
+      }
+      next();
+    };
+
 
     app.post("/payments", async (req, res) => {
       const payment = req.body;
@@ -153,27 +165,24 @@ async function run() {
     });
 
     // instructor api
-    app.get("/class", async (req, res) => {
-      // const email = req.query.email;
-      const email = "jony@gmail.com";
-
+    app.get("/class",verifyJWT,verifyInstructor, async (req, res) => {
+      const email = req.query.email;
       if (!email) {
         res.send([]);
       }
-
-      // const decodedEmail = req.decoded.email;
-      // if (email !== decodedEmail) {
-      //   return res
-      //     .status(403)
-      //     .send({ error: true, message: "porviden access" });
-      // }
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
 
       const query = { instructorEmail: email };
       const result = await classesCollection.find(query).toArray();
       res.send(result);
     });
 
-    app.post("/class", async (req, res) => {
+    app.post("/class", verifyJWT,verifyInstructor,async (req, res) => {
       const newClass = req.body;
       const result = await classesCollection.insertOne(newClass);
       res.send(result);
@@ -190,11 +199,15 @@ async function run() {
       res.send(result);
     });
     // admin api  useAllClassAdmin --- hook
-    app.get("/users",verifyJWT,verifyAdmin, async (req, res) => {      
+    app.get("/users", async (req, res) => {      
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
-    
+    app.get("/admin/users",verifyJWT,verifyAdmin, async (req, res) => {      
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
     app.get("/admin/allClass",verifyJWT,verifyAdmin, async (req, res) => {
       const result = await classesCollection
         .find()
