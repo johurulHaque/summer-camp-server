@@ -7,8 +7,7 @@ const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 
 const port = process.env.PORT || 5000;
 
-// sportsDB
-// szYoR69mQdLfEBGE
+
 // middleware
 app.use(cors());
 app.use(express.json());
@@ -35,7 +34,8 @@ const verifyJWT = (req, res, next) => {
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri =
-  "mongodb+srv://sportsDB:szYoR69mQdLfEBGE@cluster0.w9tsbcy.mongodb.net/?retryWrites=true&w=majority";
+  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.w9tsbcy.mongodb.net/?retryWrites=true&w=majority`;
+  // "mongodb+srv://sportsDB:szYoR69mQdLfEBGE@cluster0.w9tsbcy.mongodb.net/?retryWrites=true&w=majority";
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -47,9 +47,10 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
-  try {
+  // try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
+    client.connect();
 
     const usersCollection = client.db("sportsDB").collection("users");
     const classesCollection = client.db("sportsDB").collection("classes");
@@ -142,7 +143,7 @@ async function run() {
 
     app.post("/users", async (req, res) => {
       const user = req.body;
-      console.log(user);
+      // console.log(user);
       const query = { email: user.email };
       const existingUser = await usersCollection.findOne(query);
 
@@ -277,7 +278,7 @@ async function run() {
     app.post("/class/feedback/:id", async (req, res) => {
       const feedback = req.body;
       const id = req.params.id;
-      console.log(feedback.feedback, id);
+      // console.log(feedback.feedback, id);
       const filter = { _id: new ObjectId(id) };
       const options = { upsert: true };
       const updateDoc = {
@@ -295,7 +296,7 @@ async function run() {
 
     app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
+      // console.log(id);
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
@@ -330,10 +331,11 @@ async function run() {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
-  } finally {
+  // } 
+  // finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
-  }
+  // }
 }
 run().catch(console.dir);
 
